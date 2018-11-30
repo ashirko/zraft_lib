@@ -48,7 +48,7 @@
 
 
 -define(TIMEOUT, 5000).
--define(CREATE_TIMEOUT, 5000).
+-define(CREATE_TIMEOUT, 10000).
 -define(BACKOFF, 3000).
 
 

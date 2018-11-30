@@ -204,9 +204,20 @@ set_new_conf(PeerID, NewPeers, OldPeers, Timeout) ->
 %%%===================================================================
 
 delete(AllPeers) ->
-    lists:foldl(fun(P, Acc) ->
-        [{P, delete_peer(P)} | Acc]
-                end, [], AllPeers).
+    Res = lists:foldl(fun(P, Acc) ->
+        case delete_peer(P) of
+            ok ->
+                Acc;
+            {error, Error} ->
+                [{P, Error} | Acc]
+        end
+                end, [], AllPeers),
+    case Res of
+        [] ->
+            ok;
+        Else ->
+            {error, Else}
+    end.
 
 delete_peer(Peer = {Name, Node}) when Node =:= node() ->
     ok = stop_peer(Name),

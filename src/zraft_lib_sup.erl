@@ -24,7 +24,7 @@
 
 -export([start_link/0]).
 
--export([init/1,start_consensus/2,start_consensus/1]).
+-export([init/1,start_consensus/2,start_consensus/1,stop_consensus/1]).
 
 -include("zraft.hrl").
 
@@ -53,6 +53,10 @@ start_consensus(PeerID,BackEnd)->
 start_consensus(PeerID)->
     Spec = consensus_spec([PeerID]),
     start_result(supervisor:start_child(?MODULE, Spec)).
+
+stop_consensus(PeerID)->
+    ok = supervisor:terminate_child(?MODULE, PeerID),
+    ok = supervisor:delete_child(?MODULE, PeerID).
 
 start_result({ok,P})->
     {ok,P};

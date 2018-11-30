@@ -205,7 +205,7 @@ set_new_conf(PeerID, NewPeers, OldPeers, Timeout) ->
 
 delete(AllPeers) ->
     lists:foldl(fun(P, Acc) ->
-        [{Peer, delete_peer(P)} | Acc]
+        [{P, delete_peer(P)} | Acc]
                 end, [], AllPeers).
 
 delete_peer(Peer = {Name, Node}) when Node =:= node() ->
@@ -235,50 +235,6 @@ delete_data(Peer)->
     Dir = filename:join(zraft_util:get_env(snapshot_dir, "data"),PeerDirName),
     lager:info("directory name: ~p", [Dir]),
     zraft_util:del_dir(Dir).
-
-%%check_exists(Peer = {Name, Node}) when Node =:= node() ->
-%%    PeerDir = filename:join([zraft_util:get_env(log_dir, "data"), zraft_util:peer_name(Peer)]),
-%%    case file:list_dir(PeerDir) of
-%%        {ok, _} ->
-%%            {error, already_present};
-%%        _ ->
-%%            case erlang:whereis(Name) of
-%%                P when is_pid(P) ->
-%%                    {error, already_present};
-%%                _ ->
-%%                    ok
-%%            end
-%%    end;
-%%check_exists(Peer = {_Name, Node}) ->
-%%    case rpc:call(Node, ?MODULE, check_exists, [Peer]) of
-%%        {badrpc, Error} ->
-%%            {error, Error};
-%%        Result ->
-%%            Result
-%%    end.
-
-
-%%        case check_exists(P) of
-%%            ok ->
-%%                Acc;
-%%            {error, Error} ->
-%%                [{P, Error} | Acc]
-%%        end end, [], AllPeers) of
-%%        [] ->
-%%            case start_peers(UseBackend, AllPeers) of
-%%                ok ->
-%%                    case catch zraft_consensus:initial_bootstrap(FirstPeer) of
-%%                        ok ->
-%%                            set_new_conf(FirstPeer, AllPeers, [FirstPeer], ?CREATE_TIMEOUT);
-%%                        Else ->
-%%                            format_error(Else)
-%%                    end;
-%%                Else ->
-%%                    Else
-%%            end;
-%%        Errors ->
-%%            {error, Errors}
-%%    end.
 
 %%%===================================================================
 %%% Create new quorum

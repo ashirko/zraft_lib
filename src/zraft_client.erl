@@ -200,54 +200,6 @@ set_new_conf(PeerID, NewPeers, OldPeers, Timeout) ->
     end.
 
 %%%===================================================================
-%%% Delete quorum
-%%%===================================================================
-
-delete(AllPeers) ->
-    Res = lists:foldl(fun(P, Acc) ->
-        case delete_peer(P) of
-            ok ->
-                Acc;
-            {error, Error} ->
-                [{P, Error} | Acc]
-        end
-                end, [], AllPeers),
-    case Res of
-        [] ->
-            ok;
-        Else ->
-            {error, Else}
-    end.
-
-delete_peer(Peer = {Name, Node}) when Node =:= node() ->
-    ok = stop_peer(Name),
-    delete_data(Peer);
-delete_peer(Peer = {_Name, Node}) ->
-    case rpc:call(Node, ?MODULE, delete_peer, [Peer]) of
-        {badrpc, Error} ->
-            {error, Error};
-        Result ->
-            Result
-    end.
-
-stop_peer(Name)->
-    case erlang:whereis(Name) of
-        P when is_pid(P) ->
-            lager:info("stop peer ~p", [Name]),
-            zraft_lib_sup:stop_consensus(Name);
-        _ ->
-            lager:info("peer proccess doesn't exists: ~p", [Name]),
-            ok
-    end.
-
-delete_data(Peer)->
-    PeerDirName = zraft_util:peer_name_to_dir_name(zraft_util:peer_name(Peer)),
-    lager:info("PeerDirName: ~p", [PeerDirName]),
-    Dir = filename:join(zraft_util:get_env(snapshot_dir, "data"),PeerDirName),
-    lager:info("directory name: ~p", [Dir]),
-    zraft_util:del_dir(Dir).
-
-%%%===================================================================
 %%% Create new quorum
 %%%===================================================================
 
@@ -354,6 +306,45 @@ check_exists(Peer = {_Name, Node}) ->
         Result ->
             Result
     end.
+
+%%%===================================================================
+%%% Delete quorum
+%%%===================================================================
+
+-spec delete(Peers) -> ok | {error, ErrorList} when
+    Peers :: list(zraft_consensus:peer_id()),
+    ErrorList :: list({zraft_consensus:peer_id(), term()}).
+%% @doc Stop peer processes and delete corresponding files from disc.
+delete(Peers) ->
+    Res = lists:foldl(fun(P, Acc) ->
+    case delete_peer(P) of
+        ok ->
+            Acc;
+        {error, Error} ->
+            [{P, Error} | Acc]
+    end
+                      end, [], Peers),
+    case Res of
+        [] ->
+            ok;
+        Else ->
+            {error, Else}
+    end.
+
+
+-spec delete_peer(zraft_consensus:peer_id()) -> ok | {error, term()}.
+%% @doc Stop peer process and delete corresponding files from disc.
+delete_peer(Peer = {Name, Node}) when Node =:= node() ->
+    stop_peer(Name),
+    delete_data(Peer);
+delete_peer(Peer = {_Name, Node}) ->
+    case rpc:call(Node, ?MODULE, delete_peer, [Peer]) of
+        {badrpc, Error} ->
+            {error, Error};
+        Result ->
+            Result
+    end.
+
 %%%===================================================================
 %%% Private
 %%%===================================================================
@@ -470,3 +461,22 @@ format_error({error, _} = Error) ->
     Error;
 format_error(Error) ->
     {error, Error}.
+
+%% @private
+stop_peer(Name)->
+    case erlang:whereis(Name) of
+        P when is_pid(P) ->
+            lager:info("stop peer ~p", [Name]),
+            zraft_lib_sup:stop_consensus(Name);
+        _ ->
+            lager:error("peer proccess doesn't exists: ~p", [Name]),
+            ok
+    end.
+
+%% @private
+delete_data(Peer)->
+    PeerDirName = zraft_util:peer_name_to_dir_name(zraft_util:peer_name(Peer)),
+    lager:info("PeerDirName: ~p", [PeerDirName]),
+    Dir = filename:join(zraft_util:get_env(snapshot_dir, "data"),PeerDirName),
+    lager:info("directory name: ~p", [Dir]),
+    zraft_util:del_dir(Dir).

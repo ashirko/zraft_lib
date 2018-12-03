@@ -270,6 +270,7 @@ async_leader_read_request(PeerID, From,Function, Args, Timeout) ->
 %%% Peer lifecycle
 %%%===================================================================
 init([PeerID, BackEnd]) ->
+    process_flag(trap_exit, true),
     {ok, FSM} = zraft_fsm:start_link(peer(PeerID), BackEnd),
     {ok, Log} = zraft_fs_log:start_link(PeerID),
     {ok, load, #init_state{fsm = FSM, log = Log, back_end = BackEnd, id = PeerID}}.

@@ -54,9 +54,10 @@ start_consensus(PeerID)->
     Spec = consensus_spec([PeerID]),
     start_result(supervisor:start_child(?MODULE, Spec)).
 
+-spec stop_consensus(zraft_consensus:peer_id()) -> ok | {error, atom()}.
 stop_consensus(PeerID)->
-    ok = supervisor:terminate_child(?MODULE, PeerID),
-    ok = supervisor:delete_child(?MODULE, PeerID).
+    supervisor:terminate_child(?MODULE, PeerID),
+    supervisor:delete_child(?MODULE, PeerID).
 
 start_result({ok,P})->
     {ok,P};

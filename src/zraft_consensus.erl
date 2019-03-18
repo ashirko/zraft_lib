@@ -270,7 +270,6 @@ async_leader_read_request(PeerID, From,Function, Args, Timeout) ->
 %%% Peer lifecycle
 %%%===================================================================
 init([PeerID, BackEnd]) ->
-    process_flag(trap_exit, true),
     {ok, FSM} = zraft_fsm:start_link(peer(PeerID), BackEnd),
     {ok, Log} = zraft_fs_log:start_link(PeerID),
     {ok, load, #init_state{fsm = FSM, log = Log, back_end = BackEnd, id = PeerID}}.
@@ -657,9 +656,9 @@ handle_sync_event(force_timeout, From, StateName, State) ->
                     ?MODULE:StateName(timeout, State#state{timer = undefined})
             end
     end;
-handle_sync_event(update, _From, StateName, State) ->
+handle_sync_event({update,Flag}, _From, StateName, State) ->
     lager:info("change exit flag"),
-    process_flag(trap_exit, true),
+    process_flag(trap_exit, Flag),
     {reply, ok, StateName, State};
 %% drop unknown
 handle_sync_event(_Event, _From, StateName, State) ->

@@ -656,8 +656,8 @@ handle_sync_event(force_timeout, From, StateName, State) ->
                     ?MODULE:StateName(timeout, State#state{timer = undefined})
             end
     end;
-handle_sync_event({update,Flag}, _From, StateName, State) ->
-    lager:info("change exit flag"),
+handle_sync_event({set_trap_exit, Flag}, _From, StateName, State) ->
+    lager:info("set trap_exit flag to ~p", [Flag]),
     process_flag(trap_exit, Flag),
     {reply, ok, StateName, State};
 %% drop unknown

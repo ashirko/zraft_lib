@@ -466,6 +466,7 @@ format_error(Error) ->
 stop_peer(Name)->
     case erlang:whereis(Name) of
         P when is_pid(P) ->
+            ok = gen_fsm:sync_send_all_state_event(P, {set_trap_exit, true}, 10000),
             lager:info("stop peer ~p", [Name]),
             zraft_lib_sup:stop_consensus(Name);
         _ ->

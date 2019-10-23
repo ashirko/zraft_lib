@@ -31,7 +31,9 @@
     create/2,
     create/3,
     set_new_conf/4,
-    check_exists/1
+    check_exists/1,
+    delete/1,
+    delete_peer/1
 ]).
 
 -export_type([
@@ -303,6 +305,42 @@ check_exists(Peer = {_Name, Node}) ->
             Result
     end.
 %%%===================================================================
+%%% Delete quorum
+%%%===================================================================
+-spec delete(Peers) -> ok | {error, ErrorList} when
+    Peers :: list(zraft_consensus:peer_id()),
+    ErrorList :: list({zraft_consensus:peer_id(), term()}).
+%% @doc Stop peer processes and delete corresponding files from disc.
+delete(Peers) ->
+    Res = lists:foldl(fun(P, Acc) ->
+    case delete_peer(P) of
+        ok ->
+            Acc;
+        {error, Error} ->
+            [{P, Error} | Acc]
+    end
+                      end, [], Peers),
+    case Res of
+        [] ->
+            ok;
+        Else ->
+            {error, Else}
+    end.
+
+-spec delete_peer(zraft_consensus:peer_id()) -> ok | {error, term()}.
+%% @doc Stop peer process and delete corresponding files from disc.
+delete_peer(Peer = {Name, Node}) when Node =:= node() ->
+    stop_peer(Name),
+    delete_data(Peer);
+delete_peer(Peer = {_Name, Node}) ->
+    case rpc:call(Node, ?MODULE, delete_peer, [Peer]) of
+        {badrpc, Error} ->
+            {error, Error};
+        Result ->
+            Result
+    end.
+
+%%%===================================================================
 %%% Private
 %%%===================================================================
 
@@ -418,3 +456,21 @@ format_error({error, _} = Error) ->
     Error;
 format_error(Error) ->
     {error, Error}.
+
+%% @private
+stop_peer(Name)->
+    case erlang:whereis(Name) of
+        P when is_pid(P) ->
+            ok = gen_fsm:sync_send_all_state_event(P, {set_trap_exit, true}, 10000),
+            lager:info("stop peer ~p", [Name]),
+            zraft_lib_sup:stop_consensus(Name);
+        _ ->
+            lager:error("peer proccess doesn't exists: ~p", [Name]),
+            ok
+    end.
+
+%% @private
+delete_data(Peer)->
+    PeerDirName = zraft_util:peer_name_to_dir_name(zraft_util:peer_name(Peer)),
+    Dir = filename:join(zraft_util:get_env(snapshot_dir, "data"),PeerDirName),
+    zraft_util:del_dir(Dir).

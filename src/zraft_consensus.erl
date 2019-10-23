@@ -656,7 +656,9 @@ handle_sync_event(force_timeout, From, StateName, State) ->
                     ?MODULE:StateName(timeout, State#state{timer = undefined})
             end
     end;
-
+handle_sync_event({set_trap_exit, Flag}, _From, StateName, State) ->
+    process_flag(trap_exit, Flag),
+    {reply, ok, StateName, State};
 %% drop unknown
 handle_sync_event(_Event, _From, StateName, State) ->
     Error = list_to_atom(atom_to_list(StateName) ++ "_not_supported"),

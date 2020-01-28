@@ -374,7 +374,6 @@ code_change(_OldVsn, State, _Extra) ->
 start_replication(State = #state{append_buffer = Buffer}) when Buffer /= undefined->
     replicate(undefined,State);
 start_replication(State) ->
-	lager:info("DEBUG State ~p",[State]),
     #state{peer = Peer, raft = Raft, force_hearbeat = FH, request_timeout = Timeout} = State,
     #peer{next_index = NextIndex, id = PeerID} = Peer,
     PrevIndex = NextIndex - 1,

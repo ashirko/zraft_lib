@@ -971,6 +971,7 @@ handle_replicate_log(ToPeer, Req, State) ->
     PrevIndex = Req#append_entries.prev_log_index,
     NextIndex = PrevIndex + 1,
     #fs{first_index = FirstIndex} = State,
+	lager:info("DEBUG PrevIndex ~p,NextIndex ~p, FirstIndex ~p",[PrevIndex,NextIndex, FirstIndex]),
     if
         FirstIndex > NextIndex ->
 			lager:info("DEBUG case1 State ~p; Req ~p",[State,Req]),

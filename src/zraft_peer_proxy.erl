@@ -266,8 +266,10 @@ handle_cast(Req = #install_snapshot{request_ref = RF, term = Term, epoch = Epoch
     State = #state{request_ref = RF}) ->
     State1 = reset_timers(false, State),
     ?INFO(State,"Need Install snaphsot"),
+	lager:info("DEBUG State ~p",[State]),
     %%try start snapshot copy process
     State2 = install_snapshot(Req, State1#state{current_epoch = Epoch, current_term = Term,append_buffer = undefined}),
+	lager:info("DEBUG State2 ~p",[State2]),
     {noreply, State2};
 
 handle_cast(#install_snapshot{}, State) ->%%Out of date responce
@@ -372,6 +374,7 @@ code_change(_OldVsn, State, _Extra) ->
 start_replication(State = #state{append_buffer = Buffer}) when Buffer /= undefined->
     replicate(undefined,State);
 start_replication(State) ->
+	lager:info("DEBUG State ~p",[State]),
     #state{peer = Peer, raft = Raft, force_hearbeat = FH, request_timeout = Timeout} = State,
     #peer{next_index = NextIndex, id = PeerID} = Peer,
     PrevIndex = NextIndex - 1,
@@ -489,6 +492,7 @@ reset_timers(Result, State = #state{request_timer = RT, hearbeat_timer = HT}) ->
     end.
 
 progress(State = #state{force_hearbeat = FH, force_request = FR}) ->
+	lager:info("DEBUG State ~p",[State]),
     State1 = reset_timers(false, State),
     State2 = if
                  FH ->

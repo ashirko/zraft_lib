@@ -973,12 +973,14 @@ handle_replicate_log(ToPeer, Req, State) ->
     #fs{first_index = FirstIndex} = State,
     if
         FirstIndex > NextIndex ->
+			lager:info("DEBUG case1 State ~p; Req ~p",[State,Req]),
             need_snapshot(Req, State);
         true ->
             case term_at(PrevIndex, State) of
                 0 when PrevIndex == 0 andalso FirstIndex == 1 ->
                     handle_replicate_log(ToPeer, NextIndex, 0, Req, State);
                 0 ->
+					lager:info("DEBUG case2 State ~p; Req ~p",[State,Req]),
                     need_snapshot(Req, State);
                 PrevTerm ->
                     handle_replicate_log(ToPeer, NextIndex, PrevTerm, Req, State)

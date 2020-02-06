@@ -781,7 +781,7 @@ replicate_peer_request(Type,PrevLogDescr,State, Entries) ->
     #log_descr{commit_index = Commit} = LogDescr,
     Request = zraft_log_util:append_request(Epoch, Term, Commit, LastIndex, LastTerm, Entries),
 	case application:get_env(zraft_lib, rnis_debug_log) of
-		true ->
+		{ok,true} ->
 			lager:info("DEBUG Type ~p; Request ~p",[Type,Request]);
 		_ ->
 			ok
@@ -973,7 +973,7 @@ append_entries(Req, State = #state{log = Log, current_term = Term, id = PeerID})
         request_ref = Ref
     } = Req,
 	case application:get_env(zraft_lib, rnis_debug_log) of
-		true ->
+		{ok,true} ->
 			lager:info("DEBUG Req ~p",[Req]);
 		_ ->
 			ok
@@ -1000,7 +1000,7 @@ append_entries(Req, State = #state{log = Log, current_term = Term, id = PeerID})
             Reply1 = Reply
     end,
 	case application:get_env(zraft_lib, rnis_debug_log) of
-		true ->
+		{ok,true} ->
 			lager:info("DEBUG Reply1 ~p",[Reply1]);
 		_ ->
 			ok
@@ -1246,7 +1246,7 @@ collect_results(Count, Ref, Acc) ->
 
 append(Entries, State = #state{log = Log,log_state = LogStatePrev}) ->
 	case application:get_env(zraft_lib, rnis_debug_log) of
-		true ->
+		{ok,true} ->
 			lager:info("DEBUG Entries ~p; State ~p",[Entries,State]);
 		_ ->
 			ok
@@ -1256,7 +1256,7 @@ append(Entries, State = #state{log = Log,log_state = LogStatePrev}) ->
     ok = update_peer_last_index(State1),
     replicate_peer_request(?OPTIMISTIC_REPLICATE_CMD,LogStatePrev,State1, Entries),
 	case application:get_env(zraft_lib, rnis_debug_log) of
-		true ->
+		{ok,true} ->
 			lager:info("DEBUG State1 ~p",[State1]);
 		_ ->
 			ok

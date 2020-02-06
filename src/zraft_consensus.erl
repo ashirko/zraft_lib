@@ -780,6 +780,12 @@ replicate_peer_request(Type,PrevLogDescr,State, Entries) ->
     #log_descr{last_index = LastIndex, last_term = LastTerm} = PrevLogDescr,
     #log_descr{commit_index = Commit} = LogDescr,
     Request = zraft_log_util:append_request(Epoch, Term, Commit, LastIndex, LastTerm, Entries),
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG Type ~p; Request ~p",[Type,Request]);
+		_ ->
+			ok
+	end,
     to_all_follower_peer({Type, Request}, State),
     State.
 
@@ -966,6 +972,12 @@ append_entries(Req, State = #state{log = Log, current_term = Term, id = PeerID})
         entries = Entries,
         request_ref = Ref
     } = Req,
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG Req ~p",[Req]);
+		_ ->
+			ok
+	end,
     Async = zraft_fs_log:append(Log, PrevIndex, PrevTerm, Commit, Entries),
     #log_op_result{result = Result, log_state = LogState, last_conf = NewConf} = zraft_fs_log:sync_fs(Async),
     Reply = #append_reply{
@@ -981,11 +993,18 @@ append_entries(Req, State = #state{log = Log, current_term = Term, id = PeerID})
         {true, _LastIndex, ToCommit} ->
             zraft_fsm:apply_commit(State1#state.state_fsm, ToCommit),
             State2 = set_config(follower, NewConf, State1),
+			
             Reply1 = Reply#append_reply{success = true};
         {false, _} ->
             State2 = State1,
             Reply1 = Reply
     end,
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG Reply1 ~p",[Reply1]);
+		_ ->
+			ok
+	end,
     zraft_peer_route:reply_proxy(From, Reply1),
     CurrentTime = os:timestamp(),
     State3 = start_timer(State2#state{last_hearbeat = CurrentTime}),
@@ -1226,10 +1245,22 @@ collect_results(Count, Ref, Acc) ->
     end.
 
 append(Entries, State = #state{log = Log,log_state = LogStatePrev}) ->
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG Entries ~p; State ~p",[Entries,State]);
+		_ ->
+			ok
+	end,
     zraft_fs_log:append_leader(Log, Entries),
     State1 = update_log_state(Entries,State),
     ok = update_peer_last_index(State1),
     replicate_peer_request(?OPTIMISTIC_REPLICATE_CMD,LogStatePrev,State1, Entries),
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG State1 ~p",[State1]);
+		_ ->
+			ok
+	end,
     State1.
 
 update_log_state(Entries,State1=#state{log_state = LogState1})->

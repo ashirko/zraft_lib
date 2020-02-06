@@ -165,6 +165,12 @@ handle_cast(hearbeat_timeout, State = #state{request_ref = Ref}) when Ref /= und
 handle_cast(hearbeat_timeout, State) ->%%send new hearbeat
     case State#state.snapshot_progres of
         undefined ->
+			case application:get_env(zraft_lib, rnis_debug_log) of
+				true ->
+					lager:info("DEBUG case1");
+				_ ->
+					ok
+			end,
             State1 = start_replication(State),
             {noreply, State1};
         _ ->
@@ -209,6 +215,12 @@ handle_cast({?OPTIMISTIC_REPLICATE_CMD, Req},
                  _->
                      State
              end,
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG OPTIMISTIC_REPLICATE_CMD_1 return State1 ~p",[State1#state{force_request = true, current_term = Term, current_epoch = Epoch}]);
+		_ ->
+			ok
+	end,
     {noreply, State1#state{force_request = true, current_term = Term, current_epoch = Epoch}};
 
 handle_cast({?OPTIMISTIC_REPLICATE_CMD, Req},
@@ -216,6 +228,12 @@ handle_cast({?OPTIMISTIC_REPLICATE_CMD, Req},
     #append_entries{term = Term, epoch = Epoch} = Req,
     State1 = State#state{current_term = Term, current_epoch = Epoch},
     State2 = replicate(Req, State1),
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG OPTIMISTIC_REPLICATE_CMD_2 return State2 ~p",[State2]);
+		_ ->
+			ok
+	end,
     {noreply, State2};
 
 handle_cast({?OPTIMISTIC_REPLICATE_CMD, Req}, State) ->%%snapshot are being copied
@@ -223,18 +241,36 @@ handle_cast({?OPTIMISTIC_REPLICATE_CMD, Req}, State) ->%%snapshot are being copi
     State1 = State#state{current_term = Term, current_epoch = Epoch},
     %%Just send hearbeat
     State2 = install_snapshot_hearbeat(hearbeat, State1),
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG OPTIMISTIC_REPLICATE_CMD_3 return State2 ~p",[State2]);
+		_ ->
+			ok
+	end,
     {noreply, State2};
 
 handle_cast(#append_reply{},State = #state{backoff = Ref}) when Ref /= undefined ->
     State1 = cancel_backoff(State),
     ?INFO(State,"Backof repler force hearbeat"),
     progress(State1#state{force_hearbeat = true});
-handle_cast(#append_reply{from_peer = From,epoch = Epoch, success = true, agree_index = Index, request_ref = RF},
+handle_cast(Req = #append_reply{from_peer = From,epoch = Epoch, success = true, agree_index = Index, request_ref = RF},
     State = #state{force_request = FR, request_ref = RF}) ->
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG Req ~p; State ~p",[Req,State]);
+		_ ->
+			ok
+	end,
     State1 = update_peer(Index, Index + 1, Epoch,From,State),
     State2 = reset_timers(true, State1),
     State3 = if
                  FR ->
+					 case application:get_env(zraft_lib, rnis_debug_log) of
+						true ->
+							lager:info("DEBUG case1");
+						_ ->
+							ok
+				     end,
                      %%We have new entries to replicate
                      start_replication(State2);
                  true ->
@@ -384,6 +420,12 @@ start_replication(State) ->
         entries = not FH,
         from = from_addr(State)
     },
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG State ~p; Req ~p",[State,Req]);
+		_ ->
+			ok
+	end,
     zraft_consensus:replicate_log(Raft, PeerID, Req),
     Timer = zraft_util:gen_server_cast_after(Timeout, request_timeout),
     State#state{request_ref = RequestRef, request_timer = Timer,request_time = os:timestamp()}.
@@ -495,10 +537,22 @@ progress(State = #state{force_hearbeat = FH, force_request = FR}) ->
     State1 = reset_timers(false, State),
     State2 = if
                  FH ->
+					 case application:get_env(zraft_lib, rnis_debug_log) of
+						true ->
+							lager:info("DEBUG case1");
+						_ ->
+							ok
+					end,
 %%Attemt new heabeat scince last one failed
 %%if hearbeat accpetd we must start replicate log immediatly
                      start_replication(State1#state{force_request = true});
                  FR ->
+					 case application:get_env(zraft_lib, rnis_debug_log) of
+						true ->
+							lager:info("DEBUG case2");
+						_ ->
+							ok
+					end,
 %%Prev Hearbeat or replication failed
                      start_replication(State1);
                  true ->

@@ -226,6 +226,12 @@ handle_cast({replicate_log, ToPeer, Req}, State) ->
 handle_cast( {append_leader, Entries}, State) ->
     State1 = append(Entries, State),
     State2 = State1#fs{unsynced = true},
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		true ->
+			lager:info("DEBUG State ~p; State2 ~p",[State,State2]);
+		_ ->
+			ok
+	end,
     {noreply, State2,0};
 handle_cast({command, From, Cmd}, State) ->
     {ok, Reply, State1} = handle_command(Cmd, State),

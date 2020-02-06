@@ -1247,7 +1247,7 @@ collect_results(Count, Ref, Acc) ->
 append(Entries, State = #state{log = Log,log_state = LogStatePrev}) ->
 	case application:get_env(zraft_lib, rnis_debug_log) of
 		{ok,true} ->
-			lager:info("DEBUG Entries ~p; State ~p",[Entries,State]);
+			lager:info("DEBUG State ~p; Entries ~p",[State,Entries]);
 		_ ->
 			ok
 	end,

@@ -276,7 +276,7 @@ handle_cast(Req = #append_reply{from_peer = From,epoch = Epoch, success = true, 
                  true ->
                      start_hearbeat_timer(State2)
              end,
-    {noreply, State3};
+    {noreply, State3#state{backoff_timeout = undefined}};
 
 handle_cast(#append_reply{term = PeerTerm},
     State = #state{current_term = CurrentTerm,raft = Raft}) when PeerTerm > CurrentTerm ->
@@ -295,7 +295,7 @@ handle_cast(#append_reply{from_peer = From,request_ref = RF, last_index = LastIn
     progress(State1#state{append_buffer = undefined});
 
 handle_cast(#append_reply{}, State) ->%%Out of date responce
-    {noreply, State};
+    {noreply, State#state{backoff_timeout = undefined}};
 
 
 handle_cast(Req = #install_snapshot{request_ref = RF, term = Term, epoch = Epoch},

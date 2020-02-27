@@ -1005,23 +1005,6 @@ append_entries(Req, State = #state{log = Log, current_term = Term, id = PeerID})
 		_ ->
 			ok
 	end,
-	Cond = case application:get_env(zraft_lib,test_cond) of
-		undefined ->
-			ok;
-		{ok,C} ->
-			C
-	end,
-	if((PeerID == {'qlog-vis_djkh-1-1324485858831130769622089379649131486563188867072','rnis@10.1.116.43'} orelse
-		   PeerID == {'qlog-vis_djkh-1-1278813932664540053428224228626747642198940975104','rnis@10.1.116.42'} orelse
-		   PeerID == {'qlog-vis_djkh-1-1301649895747835411525156804137939564381064921088','rnis@10.1.116.43'}) andalso
-		   Cond == 1)->
-			lager:info("KATYA SLEEP"),
-		  timer:sleep(6100),
-			lager:info("KATYA Reply1 ~p",[Reply1]),
-			application:set_env(zraft_lib,test_cond,Cond+1);
-	  true ->
-		  ok
-	end,
     zraft_peer_route:reply_proxy(From, Reply1),
     CurrentTime = os:timestamp(),
     State3 = start_timer(State2#state{last_hearbeat = CurrentTime}),

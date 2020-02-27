@@ -202,12 +202,10 @@ handle_cast({?BECOME_LEADER_CMD, HearBeat},
     {noreply, State5};
 
 handle_cast({?OPTIMISTIC_REPLICATE_CMD, _Req},
-    State = #state{backoff_timeout = T}) when T /= undefined->
-	lager:info("KATYA State ~p",[State]),
+    State = #state{backoff_timeout = T}) when T /= undefined ->
     {noreply,State};
 handle_cast({?OPTIMISTIC_REPLICATE_CMD, Req},
     State = #state{request_ref = Ref}) when Ref /= undefined ->
-	lager:info("KATYA State ~p",[State]),
     %%prev request has't finished yet
     #append_entries{term = Term, epoch = Epoch} = Req,
     State1 = case State#state.snapshot_progres of
@@ -251,14 +249,12 @@ handle_cast({?OPTIMISTIC_REPLICATE_CMD, Req}, State) ->%%snapshot are being copi
 	end,
     {noreply, State2};
 
-handle_cast(Repply = #append_reply{},State = #state{backoff = Ref}) when Ref /= undefined ->
-	lager:info("KATYA Repply ~p",[Repply]),
+handle_cast(#append_reply{},State = #state{backoff = Ref}) when Ref /= undefined ->
     State1 = cancel_backoff(State),
     ?INFO(State,"Backof repler force hearbeat"),
     progress(State1#state{force_hearbeat = true});
 handle_cast(Req = #append_reply{from_peer = From,epoch = Epoch, success = true, agree_index = Index, request_ref = RF},
     State = #state{force_request = FR, request_ref = RF}) ->
-	%lager:info("KATYA Repply ~p",[Req]),
 	case application:get_env(zraft_lib, rnis_debug_log) of
 		{ok,true} ->
 			lager:info("DEBUG Req ~p; State ~p",[Req,State]);
@@ -280,31 +276,26 @@ handle_cast(Req = #append_reply{from_peer = From,epoch = Epoch, success = true, 
                  true ->
                      start_hearbeat_timer(State2)
              end,
-	%{noreply, State3};
-    {noreply, State3#state{backoff_timeout = undefined}};
+    {noreply, State3};
 
-handle_cast(Repply = #append_reply{term = PeerTerm},
+handle_cast(#append_reply{term = PeerTerm},
     State = #state{current_term = CurrentTerm,raft = Raft}) when PeerTerm > CurrentTerm ->
     %%Actualy CurrentTerm maybe out of date now, but it's not problem. We will receive new term or shutdown soon.
     ?WARNING(State,"Peer has new term(leader)"),
-	lager:info("KATYA Repply ~p",[Repply]),
     zraft_consensus:maybe_step_down(Raft, PeerTerm),
     State1 = reset_timers(true, State),
     {noreply, State1#state{append_buffer = undefined}};
 
-handle_cast(Repply = #append_reply{from_peer = From,request_ref = RF, last_index = LastIndex, epoch = Epoch},
+handle_cast(#append_reply{from_peer = From,request_ref = RF, last_index = LastIndex, epoch = Epoch},
     State = #state{peer = Peer, request_ref = RF}) ->
     ?WARNING(State,"Peer out of date"),
-	lager:info("KATYA Repply ~p",[Repply]),
     DecNext = Peer#peer.next_index - 1,
     NextIndex = max(1, min(LastIndex, DecNext)),
     State1 = update_peer(NextIndex, Epoch,From, State),
     progress(State1#state{append_buffer = undefined});
 
-handle_cast(Repply = #append_reply{}, State) ->%%Out of date responce
-lager:info("KATYA Repply ~p",[Repply]),
-%{noreply, State};
-    {noreply, State#state{backoff_timeout = undefined}};
+handle_cast(#append_reply{}, State) ->%%Out of date responce
+    {noreply, State};
 
 
 handle_cast(Req = #install_snapshot{request_ref = RF, term = Term, epoch = Epoch},

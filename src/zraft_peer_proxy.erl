@@ -295,7 +295,7 @@ handle_cast(#append_reply{from_peer = From,request_ref = RF, last_index = LastIn
     progress(State1#state{append_buffer = undefined});
 
 handle_cast(#append_reply{}, State) ->%%Out of date responce
-	lager:info("Out of date responce State ~p",[States]),
+	lager:info("Out of date responce State ~p",[State]),
     {noreply, State#state{backoff_timeout = undefined}};
 
 
@@ -421,7 +421,7 @@ start_replication(State) ->
         entries = not FH,
         from = from_addr(State)
     },
-	lager:info("DEBUG State ~p; Req ~p",[State,Req]);
+	lager:info("DEBUG State ~p; Req ~p",[State,Req]),
 %% 	case application:get_env(zraft_lib, rnis_debug_log) of
 %% 		{ok,true} ->
 %% 			lager:info("DEBUG State ~p; Req ~p",[State,Req]);

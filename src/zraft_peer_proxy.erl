@@ -421,13 +421,12 @@ start_replication(State) ->
         entries = not FH,
         from = from_addr(State)
     },
-	lager:info("DEBUG State ~p; Req ~p",[State,Req]),
-%% 	case application:get_env(zraft_lib, rnis_debug_log) of
-%% 		{ok,true} ->
-%% 			lager:info("DEBUG State ~p; Req ~p",[State,Req]);
-%% 		_ ->
-%% 			ok
-%% 	end,
+	case application:get_env(zraft_lib, rnis_debug_log) of
+		{ok,true} ->
+			lager:info("DEBUG State ~p; Req ~p",[State,Req]);
+		_ ->
+			ok
+	end,
     zraft_consensus:replicate_log(Raft, PeerID, Req),
     Timer = zraft_util:gen_server_cast_after(Timeout, request_timeout),
     State#state{request_ref = RequestRef, request_timer = Timer,request_time = os:timestamp()}.
